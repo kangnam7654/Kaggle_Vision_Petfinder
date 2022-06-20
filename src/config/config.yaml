@@ -1,0 +1,120 @@
+train:
+  seed: 2022
+  skf:
+    n_splits: 5
+    shuffle: True
+    random_state: 2022
+  trainer:
+    max_epochs: 100
+    accelerator: 'gpu'
+    gpus: 1
+    precision: 16
+    num_sanity_val_steps: 0
+    # strategy: ddp_spawn
+  early_stopping:
+    monitor: valid_rmse
+    verbose: True
+    patience: 10
+  wandb_logger:
+    project: Kaggle_Vision_Pawpularity
+    log_model: all
+    save_dir: ./src/wandb
+  checkpoint:
+    dirpath: './src/result'
+    filename: best_loss
+    monitor: valid_avg_rmse
+    save_top_k: 1
+    mode: min
+    save_last: False
+    verbose: True
+
+  # seed paper(https://arxiv.org/pdf/2109.08203.pdf) abt 3407
+
+train_loader:
+  batch_size: 128
+  shuffle: True
+  num_workers: 4
+  pin_memory: True
+  drop_last: False
+
+valid_loader:
+  batch_size: 128
+  shuffle: False
+  num_workers: 4
+  pin_memory: False
+  drop_last: False
+
+
+
+model:
+  backbone:
+    model_name: swin_base_patch4_window7_224_in22k
+    pretrained: True
+    num_classes: 0
+    in_chans: 3
+
+  head:
+    out_dim_reg: 1 # regression
+
+  loss:
+    reg: nn.BCEWithLogitsLoss
+    elastic:
+      l1_ratio: 0.5
+      alpha: 1
+
+  optimizer:
+    momentum: 0.09
+    nesterov: True
+
+  scheduler:
+    OneCycleLR:
+      steps_per_epoch: 520 #130 for 32batch
+      epochs: 1
+      #    total_steps: 143
+      max_lr: 0.025
+      verbose: False
+
+    CyclicLR:
+      base_lr: 0.0001
+      max_lr: 0.001
+      step_size_up: 80
+      step_size_down: 160
+      cycle_momentum: True
+
+    Plateau:
+      mode: min
+      factor: 0.31
+      patience: 2
+      min_lr: 0.000001
+      verbose: True
+
+    CosineAnnealingLR:
+      T_max: 300
+      eta_min: 0.0001
+
+# legacy
+
+
+#   legacy
+#  CyclicLR:
+#    base_lr: 0.000001
+#    max_lr: 0.0002
+#    step_size_up: 20
+#    step_size_down: 40
+#    cycle_momentum: False
+
+
+early_stopper:
+  patience: 10
+
+transform:
+  image_size: 224
+
+
+
+test_loader:
+  batch_size: 1
+  shuffle: False
+  num_workers: 4
+  pin_memory: False
+  drop_last: False
